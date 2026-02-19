@@ -4,14 +4,16 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateDuckRequest extends FormRequest
+class DeleteDetailTypeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return false;
+        // TODO: Modify to check authenticated
+        // TODO: Modify to check authorised / own the contact
+        return true;
     }
 
     /**

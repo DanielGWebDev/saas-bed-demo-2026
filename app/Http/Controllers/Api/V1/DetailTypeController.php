@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DeleteDetailTypeRequest;
 use App\Http\Requests\StoreDetailTypeRequest;
 use App\Http\Requests\UpdateDetailTypeRequest;
 use App\Models\DetailType;
@@ -58,7 +59,7 @@ class DetailTypeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(DeleteDetailTypeRequest $request, string $id)
     {
         $detailType = DetailType::findOrFail($id);
         $detailType->delete();
