@@ -16,7 +16,7 @@ class DetailTypeSeeder extends Seeder
         $types = ['Mobile', 'Home', 'Work', 'Email'];
 
         foreach ($types as $type) {
-            DetailType::create(['name' => $type]);
+            DetailType::firstOrCreate(['name' => $type]);
         }
     }
 }
