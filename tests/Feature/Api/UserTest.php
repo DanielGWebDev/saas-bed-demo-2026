@@ -86,7 +86,7 @@ it('returns an updated user', function () {
     $user = User::factory()->create();  // Create existing user first
 
     $attributes = User::factory()->raw([
-        'id' => $user->id,  // ← Use the new user's ID
+        'id' => $user->id,  // Use the newly created user's ID
     ]);
 
     $updateData = [
@@ -114,7 +114,7 @@ it('returns an updated user', function () {
         'id' => $user->id,
         'given_name' => $updateData['given_name'],
         'family_name' => $updateData['family_name'],
-        'email' => $user->email,  // ← Unchanged
+        'email' => $user->email,  // Unchanged
     ]);
 });
 

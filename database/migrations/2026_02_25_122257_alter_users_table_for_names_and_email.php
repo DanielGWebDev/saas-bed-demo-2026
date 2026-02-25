@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('name');  // Replace with given_name + family_name
+            $table->dropColumn('name');  // Replace with given_name & family_name
             $table->string('given_name', 64);
             $table->string('family_name', 64)->nullable();
             $table->string('email', 128)->change();

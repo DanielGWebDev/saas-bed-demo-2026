@@ -56,8 +56,20 @@ it('returns status 422 with validation error when creating contact with missing 
 
 // Update a contact
 it('returns an updated contact', function () {
-    $attributes = Contact::factory()->raw();
-    $response = $this->putJson('/api/v1/contacts/1', $attributes);
+    $contact = Contact::factory()->create();  // Create existing contact first
+
+    $attributes = Contact::factory()->raw([
+        'id' => $contact->id,  // Use the newly created contact's ID
+    ]);
+
+    $updateData = [
+        'given_name' => $attributes['given_name'],
+        'family_name' => $attributes['family_name'],
+        'nick_name' => $attributes['nick_name'],
+        'title' => $attributes['title'],
+    ];
+
+    $response = $this->putJson("/api/v1/contacts/{$contact->id}", $updateData);
     $response->assertStatus(200);
     $response->assertJsonStructure([
         'id',
@@ -66,7 +78,14 @@ it('returns an updated contact', function () {
         'nick_name',
         'title'
     ]);
-    $this->assertDatabaseHas('contacts', $attributes);
+
+    $this->assertDatabaseHas('contacts', [
+        'id' => $contact->id,
+        'given_name' => $updateData['given_name'],
+        'family_name' => $updateData['family_name'],
+        'nick_name' => $updateData['nick_name'],
+        'title' => $updateData['title'],
+    ]);
 });
 
 // Delete a contact
