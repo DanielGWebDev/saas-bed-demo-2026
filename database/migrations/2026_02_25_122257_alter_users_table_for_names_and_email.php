@@ -15,7 +15,6 @@ return new class extends Migration {
             $table->string('given_name', 64);
             $table->string('family_name', 64)->nullable();
             $table->string('email', 128)->change();
-            $table->string('password', 64)->change();
         });
     }
 
@@ -28,7 +27,6 @@ return new class extends Migration {
             $table->dropColumn(['given_name', 'family_name']); // Replace with name
             $table->string('name');
             $table->string('email')->change();
-            $table->string('password')->change();
         });
     }
 };

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contact extends Model
 {
@@ -17,6 +17,7 @@ class Contact extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'given_name',
         'family_name',
         'nick_name',
@@ -28,9 +29,7 @@ class Contact extends Model
      *
      * @var list<string>
      */
-    protected $hidden = [
-
-    ];
+    protected $hidden = [];
 
     /**
      * Get the attributes that should be cast.
@@ -39,8 +38,16 @@ class Contact extends Model
      */
     protected function casts(): array
     {
-        return [
+        return [];
+    }
 
-        ];
+    /**
+     * Get the user that owns the contact.
+     *
+     * @return BelongsTo
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

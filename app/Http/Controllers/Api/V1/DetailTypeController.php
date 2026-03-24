@@ -1,12 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeleteDetailTypeRequest;
 use App\Http\Requests\StoreDetailTypeRequest;
 use App\Http\Requests\UpdateDetailTypeRequest;
+use App\Http\Resources\DetailTypeResource;
 use App\Models\DetailType;
-use Illuminate\Http\Request;
 
 class DetailTypeController extends Controller
 {
@@ -15,8 +16,7 @@ class DetailTypeController extends Controller
      */
     public function index()
     {
-        $detailTypes = DetailType::all();
-        return response()->json($detailTypes);
+        return DetailTypeResource::collection(DetailType::all());
     }
 
     /**
@@ -24,46 +24,33 @@ class DetailTypeController extends Controller
      */
     public function store(StoreDetailTypeRequest $request)
     {
-        $validated = $request->validated();
-        $detailType = DetailType::create($validated);
-        return response()->json($detailType, 201);
+        $detailType = DetailType::create($request->validated());
+        return (new DetailTypeResource($detailType))->response()->setStatusCode(201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(DetailType $detailType)
     {
-        $detailType = DetailType::findOrFail($id); // will throw 404 if not found
-        return response()->json($detailType);
+        return new DetailTypeResource($detailType);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateDetailTypeRequest $request, string $id)
+    public function update(UpdateDetailTypeRequest $request, DetailType $detailType)
     {
-        // Find the contact by ID or fail with 404
-        $detailType = DetailType::findOrFail($id);
-
-        // Validate the request using UpdateContactRequest
-        $validated = $request->validated();
-
-        // Update the contact with the validated data
-        $detailType->update($validated);
-
-        // Return the updated contact as JSON
-        return response()->json($detailType);
+        $detailType->update($request->validated());
+        return new DetailTypeResource($detailType);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(DeleteDetailTypeRequest $request, string $id)
+    public function destroy(DeleteDetailTypeRequest $request, DetailType $detailType)
     {
-        $detailType = DetailType::findOrFail($id);
         $detailType->delete();
-
-        return response()->noContent();  // 204 No Content
+        return response()->noContent();
     }
 }

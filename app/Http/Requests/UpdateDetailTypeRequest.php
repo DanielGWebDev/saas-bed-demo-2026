@@ -25,10 +25,11 @@ class UpdateDetailTypeRequest extends FormRequest
     {
         return [
             'name' => [
+                'sometimes',
                 'required',
                 'string',
                 'max:32',
-                'unique:detail_types,name,' . $this->route('detail_type'),
+                'unique:detail_types,name,' . $this->route('detail_type')->id,
             ],
         ];
     }

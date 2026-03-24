@@ -23,3 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .env.testing
+laradumps.yaml
+tests/Browser/Screenshots
+config/cors.php.original

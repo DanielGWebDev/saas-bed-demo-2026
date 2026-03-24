@@ -25,21 +25,25 @@ class UpdateContactRequest extends FormRequest
     {
         return [
             'given_name' => [
+                'sometimes',
                 'required',
                 'string',
                 'max:64'
             ],
             'family_name' => [
+                'sometimes',
                 'nullable',
                 'string',
                 'max:64'
             ],
             'nick_name' => [
+                'sometimes',
                 'nullable',
                 'string',
                 'max:32'
             ],
             'title' => [
+                'sometimes',
                 'nullable',
                 'string',
                 'max:16'

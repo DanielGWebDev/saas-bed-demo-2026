@@ -17,10 +17,10 @@ class ContactFactory extends Factory
     public function definition(): array
     {
         return [
-            'given_name' => $this->faker->firstName(),
-            'family_name' => $this->faker->lastName(),
-            'nick_name' => $this->faker->userName(),
-            'title' => $this->faker->title(),
+            'given_name' => fake()->firstName(),
+            'family_name' => fake()->lastName(),
+            'nick_name' => fake()->userName(),
+            'title' => fake()->title(),
         ];
     }
 }

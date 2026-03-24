@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test Page</title>
+    <style>
+        h1, p {
+            text-align: center;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+<h1>CORS Test Page</h1>
+<p id="result"></p>
+<script>
+    async function testCors(url, options = {}) {
+        try {
+            options.headers = options.headers || {};
+            options.headers['Accept'] = 'application/json';
+            const response = await fetch(url, options);
+            document.getElementById('result').textContent = 'SUCCESS: ' + response.status;
+        } catch (error) {
+            document.getElementById('result').textContent = 'ERROR: ' + error.message;
+        }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    const method = params.get('method') || 'GET';
+    const headers = params.get('headers') ? JSON.parse(params.get('headers')) : {};
+    const credentials = params.get('credentials') || 'same-origin';
+
+    if (url) {
+        testCors(url, {method, headers, credentials});
+    }
+</script>
+</body>
+</html>

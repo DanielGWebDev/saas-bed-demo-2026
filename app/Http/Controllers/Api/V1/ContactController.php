@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ContactResource;
 use App\Http\Requests\DeleteContactRequest;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
-use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
@@ -16,8 +16,7 @@ class ContactController extends Controller
      */
     public function index()
     {
-        $contacts = Contact::all();
-        return response()->json($contacts);
+        return ContactResource::collection(Contact::all());
     }
 
     /**
@@ -25,46 +24,36 @@ class ContactController extends Controller
      */
     public function store(StoreContactRequest $request)
     {
-        $validated = $request->validated();
-        $contact = Contact::create($validated);
-        return response()->json($contact, 201);
+        $contact = Contact::create(array_merge(
+            $request->validated(),
+            ['user_id' => 1] // TODO: replace with auth()->id() when auth is implemented
+        ));
+        return (new ContactResource($contact))->response()->setStatusCode(201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Contact $contact)
     {
-        $contact = Contact::findOrFail($id); // will throw 404 if not found
-        return response()->json($contact);
+        return new ContactResource($contact);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateContactRequest $request, string $id)
+    public function update(UpdateContactRequest $request, Contact $contact)
     {
-        // Find the contact by ID or fail with 404
-        $contact = Contact::findOrFail($id);
-
-        // Validate the request using UpdateContactRequest
-        $validated = $request->validated();
-
-        // Update the contact with the validated data
-        $contact->update($validated);
-
-        // Return the updated contact as JSON
-        return response()->json($contact);
+        $contact->update($request->validated());
+        return new ContactResource($contact);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(DeleteContactRequest $request, string $id)
+    public function destroy(DeleteContactRequest $request, Contact $contact)
     {
-        $contact = Contact::findOrFail($id);
         $contact->delete();
-
-        return response()->noContent();  // 204 No Content
+        return response()->noContent();
     }
 }

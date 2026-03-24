@@ -8,7 +8,6 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
@@ -32,9 +31,8 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(User $user)
     {
-        $user = User::findOrFail($id);
         return new UserResource($user);
     }
 
@@ -50,11 +48,9 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(DeleteUserRequest $request, string $id)
+    public function destroy(DeleteUserRequest $request, User $user)
     {
-        $user = User::findOrFail($id);
         $user->delete();
-
-        return response()->noContent();  // 204 No Content
+        return response()->noContent();
     }
 }
