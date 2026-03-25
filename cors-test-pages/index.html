@@ -30,6 +30,11 @@
     const headers = params.get('headers') ? JSON.parse(params.get('headers')) : {};
     const credentials = params.get('credentials') || 'same-origin';
 
+    const token = params.get('token');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     if (url) {
         testCors(url, {method, headers, credentials});
     }

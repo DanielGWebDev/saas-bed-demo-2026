@@ -26,3 +26,4 @@ Thumbs.db
 laradumps.yaml
 tests/Browser/Screenshots
 config/cors.php.original
+config/cors.php.postman

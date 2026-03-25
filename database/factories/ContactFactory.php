@@ -19,7 +19,11 @@ class ContactFactory extends Factory
         return [
             'given_name' => fake()->firstName(),
             'family_name' => fake()->lastName(),
-            'nick_name' => fake()->userName(),
+            'nick_name' => fake()->randomElement([
+                'Skippy', 'Bubbles', 'Goofy', 'Chief', 'Ace', 'Sparky',
+                'Crash', 'Fuzzy', 'Snickers', 'Rambo', 'Champ', 'Bear',
+                'Cookie', 'Buzz', 'Tiger', 'Rocky', 'Shadow', 'Lucky'
+            ]),
             'title' => fake()->title(),
         ];
     }

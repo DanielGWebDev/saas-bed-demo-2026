@@ -8,6 +8,12 @@ uses(RefreshDatabase::class);
 
 describe('Contact', function () {
 
+    // Create and authenticate a user via Sanctum before each test
+    beforeEach(function () {
+        $this->authUser = User::factory()->create();
+        $this->actingAs($this->authUser, 'sanctum');
+    });
+
     // Return all contacts
     it('returns a list of contacts', function () {
         User::factory()->count(3)->create()->each(function ($user) {

@@ -4,6 +4,7 @@ use App\Models\User;
 use Symfony\Component\Process\Process;
 use Tests\Helpers\CORSHelper;
 
+const TEST_API_ROUTE_BASE = 'api.v1.users';
 const CORS_API_ENDPOINT = 'http://myapp.test:8000/api/v1/users';
 const CORS_ORIGIN = 'http://myapp.test:3000';
 const CORS_ORIGIN_SUBDOMAIN = 'http://sub.myapp.test:3000';
@@ -39,7 +40,10 @@ beforeAll(function () {
     }
 
     try {
+        // Connect to test SQLite DB
         $db = new \PDO('sqlite:' . $dbPath);
+
+        // Get first user ID for testing
         $result = $db->query("SELECT id FROM users ORDER BY id ASC LIMIT 1");
         if ($result === false) {
             throw new \RuntimeException('Users table not found. Please run: php artisan migrate --seed');
@@ -49,9 +53,24 @@ beforeAll(function () {
             throw new \RuntimeException('No users found in database. Please run: php artisan db:seed');
         }
         $GLOBALS['testUserId'] = $user['id'];
+
+        // Generate test token matching Sanctum::createToken()
+        $tokenName = 'cors-test';
+        $plainToken = 'cors-test-token-' . $GLOBALS['testUserId'] . '-' . uniqid();
+        $hashedToken = hash('sha256', $plainToken); // Sanctum stores hash only
+        $tokenAbilities = '["*"]';  // Full permissions
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
+
+        // Create token row (mimics $user->createToken())
+        $stmt = $db->prepare("INSERT INTO personal_access_tokens (tokenable_type, tokenable_id, name, token, abilities, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))");
+        $stmt->execute(['App\\Models\\User', $GLOBALS['testUserId'], $tokenName, $hashedToken, $tokenAbilities, $expiresAt]);
+
+        $GLOBALS['authToken'] = $plainToken; // Use in Authorization: Bearer header
     } catch (\RuntimeException $e) {
+        // Pass through prior validation errors unchanged
         throw $e;
     } catch (\Exception $e) {
+        // Catch INSERT failures (missing token table, constraints, duplicates)
         throw new \RuntimeException('Database error: ' . $e->getMessage());
     }
 
@@ -75,6 +94,11 @@ beforeAll(function () {
 });
 
 afterAll(function () {
+    // Clean token
+    $dbPath = dirname(__DIR__, 3) . '/database/database.sqlite';
+    $db = new \PDO('sqlite:' . $dbPath);
+    $db->prepare("DELETE FROM personal_access_tokens WHERE name = 'cors-test'")->execute();
+
     $GLOBALS['corsServer']->stop();
     CORSHelper::stopLaravelServer();
     CORSHelper::restoreConfig();
@@ -124,6 +148,16 @@ afterEach(function () {
 describe('CORS Browser', function () {
 
     describe('Simple GET request', function () {
+
+        // Skip Simple GET request tests if authentication is required
+        beforeEach(function () {
+            $route = app('router')->getRoutes()->getByName(TEST_API_ROUTE_BASE . '.index');
+            $middleware = $route->middleware();
+
+            if (in_array('auth:sanctum', $middleware)) {
+                $this->markTestSkipped('User requires authentication; Simple GET request not possible.');
+            }
+        });
 
         it('permits simple GET request from any origin when wildcard is configured', function () {
             CORSHelper::setConfig([
@@ -187,15 +221,29 @@ describe('CORS Browser', function () {
 
     describe('Preflight OPTIONS request', function () {
 
+        beforeEach(function () {
+            $route = app('router')->getRoutes()->getByName(TEST_API_ROUTE_BASE . '.index');
+            $middleware = $route->middleware();
+
+            $this->hasAuth = in_array('auth:sanctum', $middleware);
+        });
+
         it('permits preflight request from any origin when wildcard is configured', function () {
             CORSHelper::setConfig([
                 'allowed_origins' => ['*'],
                 'allowed_methods' => ['*'],
                 'allowed_headers' => ['*'],
             ]);
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('SUCCESS: 200');
+
             $log = file_get_contents(storage_path('logs/request_log.txt'));
             expect($log)
                 ->toContain('OPTIONS api/v1/users/' . $GLOBALS['testUserId'] . ' 204')
@@ -209,8 +257,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('SUCCESS: 200');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -227,8 +280,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage(CORS_ORIGIN_SUBDOMAIN) . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage(CORS_ORIGIN_SUBDOMAIN) . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('SUCCESS: 200');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -244,8 +302,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('SUCCESS: 200');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -261,8 +324,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['content-type', 'authorization'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('SUCCESS: 200');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -278,8 +346,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage(CORS_ORIGIN_DISALLOWED) . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage(CORS_ORIGIN_DISALLOWED) . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('ERROR: Failed to fetch');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -296,8 +369,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage(CORS_ORIGIN_SUBDOMAIN) . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage(CORS_ORIGIN_SUBDOMAIN) . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('ERROR: Failed to fetch');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -313,8 +391,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['*'],
             ]);
 
-            $headers = json_encode(['Content-Type' => 'application/json']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['Content-Type' => 'application/json',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('ERROR: Failed to fetch');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -330,8 +413,13 @@ describe('CORS Browser', function () {
                 'allowed_headers' => ['content-type'],
             ]);
 
-            $headers = json_encode(['X-Custom-Header' => 'value']);
-            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headers));
+            $headers = ['X-Custom-Header' => 'value',];
+            if ($this->hasAuth) {
+                $headers['Authorization'] = 'Bearer ' . $GLOBALS['authToken'];
+            }
+            $headersJson = json_encode($headers);
+
+            $page = visit(corsUserPage() . '&method=PATCH&headers=' . urlencode($headersJson));
             $page->assertSee('ERROR: Failed to fetch');
 
             $log = file_get_contents(storage_path('logs/request_log.txt'));
@@ -352,7 +440,9 @@ describe('CORS Browser', function () {
                 'supports_credentials' => false,
             ]);
 
-            $page = visit(CORS_TEST_PAGE . '&method=GET&credentials=include');
+            $headers = ['Authorization' => 'Bearer ' . $GLOBALS['authToken']];
+            $headersJson = json_encode($headers);
+            $page = visit(CORS_TEST_PAGE . '&method=GET&headers=' . urlencode($headersJson) . '&credentials=include');
             $page->assertSee('ERROR: Failed to fetch');
         });
 
@@ -364,7 +454,9 @@ describe('CORS Browser', function () {
                 'supports_credentials' => true,
             ]);
 
-            $page = visit(CORS_TEST_PAGE . '&method=GET&credentials=include');
+            $headers = ['Authorization' => 'Bearer ' . $GLOBALS['authToken']];
+            $headersJson = json_encode($headers);
+            $page = visit(CORS_TEST_PAGE . '&method=GET&headers=' . urlencode($headersJson) . '&credentials=include');
             $page->assertSee('SUCCESS: 200');
         });
     });

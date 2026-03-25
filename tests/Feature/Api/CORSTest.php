@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Config;
 
 const CORS_TEST_ENDPOINT = '/api/v1/users';
@@ -9,6 +10,11 @@ describe('CORS', function () {
     describe('Simple GET request', function () {
 
         beforeEach(function () {
+            // Create and authenticate a user via Sanctum before each test
+            $this->authUser = User::factory()->create();
+            $this->actingAs($this->authUser, 'sanctum');
+
+            // Set CORS config
             Config::set('cors.allowed_methods', ['*']);
             Config::set('cors.allowed_origins', ['https://myapp.com']);
             Config::set('cors.allowed_origins_patterns', ['/^https:\/\/.*\.myapp\.com$/']);
@@ -121,6 +127,7 @@ describe('CORS', function () {
     describe('Preflight OPTIONS request', function () {
 
         beforeEach(function () {
+            // Set CORS config
             Config::set('cors.allowed_methods', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
             Config::set('cors.allowed_origins', ['https://myapp.com']);
             Config::set('cors.allowed_origins_patterns', ['/^https:\/\/.*\.myapp\.com$/']);
@@ -391,6 +398,7 @@ describe('CORS', function () {
     describe('Credentials', function () {
 
         beforeEach(function () {
+            // Set CORS config
             Config::set('cors.allowed_origins', ['https://myapp.com']);
         });
 

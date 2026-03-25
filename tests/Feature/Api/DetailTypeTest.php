@@ -2,10 +2,17 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\DetailType;
+use App\Models\User;
 
 uses(RefreshDatabase::class);
 
 describe('Detail Type', function () {
+
+    // Create and authenticate a user via Sanctum before each test
+    beforeEach(function () {
+        $this->authUser = User::factory()->create();
+        $this->actingAs($this->authUser, 'sanctum');
+    });
 
     // Return all detail types
     it('returns a list of detail types', function () {

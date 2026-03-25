@@ -7,6 +7,12 @@ uses(RefreshDatabase::class);
 
 describe('User', function () {
 
+    // Create and authenticate a user via Sanctum before each test
+    beforeEach(function () {
+        $this->authUser = User::factory()->create();
+        $this->actingAs($this->authUser, 'sanctum');
+    });
+
     // Return all users
     it('returns a list of users', function () {
         User::factory()->count(3)->create();
